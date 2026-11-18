@@ -1,0 +1,19 @@
+[Unit]
+Description=Teo - preparação teológica e pastoral
+After=network.target
+[Service]
+Type=simple
+User=teo
+WorkingDirectory=/opt/teo
+ExecStart=/usr/bin/node /opt/teo/server/index.mjs
+Environment=NODE_ENV=production
+Environment=TEO_DATA_DIR=/var/lib/teo
+EnvironmentFile=/etc/teo.env
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/teo
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+data/
+node_modules/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.key
+*.log
+android/local.properties
+android/.gradle/
+android/app/build/
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/node_modules/

@@ -1,0 +1,7 @@
+{
+  "appId":"br.app.teo.preparacao",
+  "appName":"Teo",
+  "webDir":"www",
+  "android":{"allowMixedContent":false,"backgroundColor":"#173e35"},
+  "plugins":{"SplashScreen":{"backgroundColor":"#173e35","showSpinner":false}}
+}

@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {weightedGrade,nextReview,calculatePlan,simulationEligibility,selectBalanced,chunkPages,rankChunks,validateLesson} from '../server/domain.mjs';
+import {readResponseStream,validateCitations} from '../server/ai.mjs';
+test('avaliação pondera compreensão e redistribui a exceção bíblica',()=>{assert.equal(weightedGrade({theological:8,biblical:6,clarity:10}).total,7.8);assert.equal(weightedGrade({theological:8,clarity:10},false).total,8.77);assert.throws(()=>weightedGrade({theological:11,biblical:9,clarity:9}));});
+test('revisão regride quando há lacuna e amplia com o desempenho',()=>{assert.equal(nextReview(3,3,0).days,1);assert.equal(nextReview(9,2,0).days,7);assert.equal(nextReview(9,3,0).days,14);});
+test('jornada não inventa horas quando o currículo não foi publicado',()=>{const p=calculatePlan({preferences:{minutes:30,days:[1,2,3,4,5]},disciplines:[{id:'a',title:'Bibliologia',axisId:'sistematica'}],lessons:[],mastery:[]});assert.equal(p.hours,0);assert.equal(p.completionDate,null);assert.equal(p.unavailableDisciplines,1);});
+test('data não libera uma simulação sem aprendizagem',()=>{assert.equal(simulationEligibility({lessons:[],progress:[],attempts:[],mastery:[],questions:[],rules:{minimumScore:7,requiredMastery:7,requireRealQuestions:true}}).eligible,false);});
+test('seleção alterna áreas e evita as perguntas repetidas',()=>{const q=[{id:'a',axisId:'a'},{id:'b',axisId:'a'},{id:'c',axisId:'b'}];const chosen=selectBalanced(q,3,['a']);assert.deepEqual(chosen.map(x=>x.id),['b','c','a']);});
+test('fragmentação mantém página de origem e busca não encontra fontes inexistentes',()=>{const c=chunkPages([{page:3,text:'Trindade '.repeat(500)}]);assert(c.length>1);assert(c.every(x=>x.page===3));assert(rankChunks('trindade',c).length);assert.equal(rankChunks('inexistente',c).length,0);});
+test('validação rejeita aula incompleta e ID de fonte inventado',()=>{assert.throws(()=>validateLesson({title:'Aula'}));assert.throws(()=>validateCitations(['inventado'],[{id:'real'}]));});
+test('stream da assinatura precisa de evento terminal de sucesso',async()=>{const bytes=new TextEncoder().encode('data: {"type":"response.output_text.delta","delta":"olá"}\n\n');await assert.rejects(()=>readResponseStream(new Response(bytes)));const good=new Response('data: {"type":"response.output_text.delta","delta":"olá"}\n\ndata: {"type":"response.completed","response":{"usage":{"input_tokens":2}}}\n\n');assert.equal((await readResponseStream(good)).text,'olá');});

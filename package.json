@@ -1,0 +1,16 @@
+{
+  "name": "teo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Seu assistente de preparação teológica e pastoral",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "dev": "node --watch server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "android:prepare": "node scripts/android.mjs",
+    "ai:connect": "node scripts/chatgpt-connect.mjs"
+  }
+}

@@ -1,0 +1,3 @@
+import crypto from 'node:crypto';
+import {body,db,fail,handler,json,list,mutation,session,upsert} from './_lib.mjs';
+export default handler(async(req,res)=>{const user=await session(req);mutation(req,user);if(req.method!=='POST')return json(res,405,{error:'Método não permitido.'});const d=await body(req),targetId=String(d.targetId||'').trim();if(!targetId||targetId.length>150)fail('Identificador inválido.');const old=(await list('favorites',user.id)).find(x=>x.targetId===targetId);if(old)await db('DELETE FROM favorites WHERE id=$1',[old.id]);else await upsert('favorites',crypto.randomUUID(),user.id,{targetId,kind:d.kind==='document'?'document':'lesson'});json(res,200,{ok:true});});

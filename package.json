@@ -3,14 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Seu assistente de preparação teológica e pastoral",
+  "description": "Seu assistente de prepara��o teol�gica e pastoral",
   "engines": { "node": ">=24.0.0" },
+  "dependencies": {
+    "pg": "8.16.3"
+  },
   "scripts": {
     "start": "node server/index.mjs",
     "dev": "node --watch server/index.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node scripts/check.mjs",
     "android:prepare": "node scripts/android.mjs",
-    "ai:connect": "node scripts/chatgpt-connect.mjs"
+    "ai:connect": "node scripts/chatgpt-connect.mjs",
+    "db:export:sqlite": "node scripts/export-sqlite.mjs"
   }
 }
+

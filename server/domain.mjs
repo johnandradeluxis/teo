@@ -66,4 +66,10 @@ export function rankChunks(query,chunks,limit=6) {
   const terms=String(query).toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{Diacritic}/gu,'').match(/[\p{L}\p{N}]{3,}/gu)||[];
   return chunks.map(c=>{const text=c.text.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{Diacritic}/gu,'');return {...c,relevance:terms.reduce((s,t)=>s+(text.includes(t)?1:0),0)};}).filter(c=>c.relevance>0).sort((a,b)=>b.relevance-a.relevance).slice(0,limit);
 }
+export function buildDailyStudyGuide({preferences,disciplines,lessons,plan,now=Date.now()}) {
+  const total=Math.max(15,Number(preferences.minutes)||30),published=lessons.filter(x=>x.status==='published'&&x.required!==false);
+  const weights={sistematica:.65,biblia:.2,batista:.15,ministerial:0};
+  const blocks=Object.entries(weights).map(([axisId,weight])=>{const minutes=Math.max(weight?1:0,Math.round(total*weight));const item=published.find(x=>x.axisId===axisId&&!x.completed);return {axisId,minutes,title:item?.title||'Conte�do ainda n�o publicado',lessonId:item?.id||null,estimatedPages:item?.estimatedPages||null,pageStart:item?.pageStart||null,pageEnd:item?.pageEnd||null,section:item?.section||null,references:item?.biblicalReferences||[],objective:item?.objectives?.[0]||null,focus:axisId==='biblia'?'Refer�ncias e contexto b�blico':axisId==='batista'?'Declara��o doutrin�ria e Pacto e Comunh�o':axisId==='sistematica'?'Leitura principal da Teologia Sistem�tica':'Revis�o ministerial'};}).filter(x=>x.minutes>0);
+  return {date:new Date(now).toISOString().slice(0,10),totalMinutes:total,blocks,notice:'Distribui��o inicial adaptativa; ser� recalculada conforme diagn�stico, dom�nio e ritmo de leitura.'};
+}
 

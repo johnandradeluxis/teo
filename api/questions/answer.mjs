@@ -1,0 +1,3 @@
+import crypto from 'node:crypto';
+import {body,fail,handler,json,list,mutation,one,session,upsert} from '../_lib.mjs';
+export default handler(async(req,res)=>{const user=await session(req);mutation(req,user);if(req.method!=='POST')return json(res,405,{error:'Método não permitido.'});const d=await body(req),q=await one('questions',d.questionId);if(!q||q.status!=='published')fail('Questão indisponível.',404);const score=q.type==='discursive'?null:(String(d.answer)===String(q.correct)?10:0),attempt=await upsert('question_attempts',crypto.randomUUID(),user.id,{questionId:q.id,answer:d.answer,score,feedback:null,diagnostic:false});json(res,200,{...attempt,explanation:q.type==='discursive'?null:q.explanation,correct:q.type==='discursive'?null:q.correct});});

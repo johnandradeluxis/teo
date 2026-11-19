@@ -1,0 +1,4 @@
+import crypto from 'node:crypto';
+import {fail,handler,json,list,mutation,session,upsert} from '../_lib.mjs';
+import {selectBalanced} from '../../server/domain.mjs';
+export default handler(async(req,res)=>{const user=await session(req);mutation(req,user);if(req.method!=='POST')return json(res,405,{error:'Método não permitido.'});const qs=(await list('questions')).filter(q=>q.status==='published'&&q.type!=='discursive'),chosen=selectBalanced(qs,16);if(new Set(chosen.map(q=>q.axisId)).size<4)fail('O diagnóstico requer questões objetivas publicadas nos quatro eixos.',409);const run=await upsert('journey_milestones',crypto.randomUUID(),user.id,{kind:'diagnostic_run',questionIds:chosen.map(q=>q.id),finished:false});json(res,200,{runId:run.id,questions:chosen.map(({correct,modelAnswer,explanation,...q})=>q)});});

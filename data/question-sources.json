@@ -1,0 +1,72 @@
+[
+  {
+    "id": "cbb-exame-consagracao",
+    "title": "Exame e Consagração ao Ministério Pastoral",
+    "url": "https://www.convencaobatista.com.br/sig/modulos/site/comunicacao/uploads/documentoDownloadSite/exameconspastoral.pdf",
+    "publisher": "Convenção Batista Brasileira",
+    "kind": "institutional",
+    "usage": "reference_and_citation",
+    "licenseStatus": "official_public_document",
+    "notes": "Use para estruturar áreas e critérios do exame; não reproduzir integralmente sem autorização."
+  },
+  {
+    "id": "opbb-pi-concilio",
+    "title": "Perguntas para concílio de igreja",
+    "url": "https://opbpi.webnode.com.br/concilho-de-igreja/",
+    "publisher": "OPBB - Seção Piauiense",
+    "kind": "public_reference",
+    "usage": "paraphrase_and_review",
+    "licenseStatus": "public_page_rights_unverified",
+    "notes": "Gerar perguntas autorais e revisar respostas à luz das fontes oficiais do Teo."
+  },
+  {
+    "id": "pilao-arcado-perguntas",
+    "title": "Perguntas para Concílio Pastoral",
+    "url": "http://igrejabatistabiblicapilaoarcado-ba.blogspot.com/2013/05/perguntas-para-concilio-pastoral.html",
+    "publisher": "Igreja Batista Bíblica de Pilão Arcado - BA",
+    "kind": "public_reference",
+    "usage": "paraphrase_and_review",
+    "licenseStatus": "public_page_rights_unverified",
+    "notes": "Autoria atribuída ao Pr. Domingos Ribeiro de Santana; não tratar como norma denominacional."
+  },
+  {
+    "id": "scribd-perguntas-batista-639467357",
+    "title": "Perguntas para Concílio Batista",
+    "url": "https://pt.scribd.com/document/639467357/Perguntas-para-Concilio-Batista",
+    "publisher": "Scribd / Multiart Josué Henrique",
+    "kind": "third_party_reference",
+    "usage": "topic_inspiration_only",
+    "licenseStatus": "all_rights_reserved",
+    "notes": "Não copiar, redistribuir ou apresentar como pergunta oficial."
+  },
+  {
+    "id": "scribd-perguntas-igreja-533699784",
+    "title": "Perguntas e Respostas para o Concílio da Igreja",
+    "url": "https://pt.scribd.com/document/533699784/Perguntas-Para-Concilio-da-Igreja",
+    "publisher": "Scribd / PIB Castelo de Sonhos-PA",
+    "kind": "third_party_reference",
+    "usage": "topic_inspiration_only",
+    "licenseStatus": "all_rights_reserved",
+    "notes": "Não copiar respostas ou redação; usar somente para mapear temas recorrentes."
+  },
+  {
+    "id": "quizlet-concilio-batista",
+    "title": "Concílio Batista - perguntas e respostas",
+    "url": "https://quizlet.com/br/934345286/concilio-batista-perguntas-e-respostas-flash-cards/",
+    "publisher": "Quizlet",
+    "kind": "third_party_reference",
+    "usage": "topic_inspiration_only",
+    "licenseStatus": "rights_unverified",
+    "notes": "Conteúdo não validado automaticamente; requer conferência manual."
+  },
+  {
+    "id": "youtube-concilio-batista-55xzadmV7dw",
+    "title": "Material audiovisual sobre concílio batista",
+    "url": "https://www.youtube.com/watch?v=55xzadmV7dw",
+    "publisher": "YouTube",
+    "kind": "audio_visual_reference",
+    "usage": "manual_review_only",
+    "licenseStatus": "rights_unverified",
+    "notes": "Não transcrever ou incorporar sem autorização; registrar apenas temas observados."
+  }
+]

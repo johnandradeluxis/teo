@@ -1,3 +1,0 @@
-import crypto from 'node:crypto';
-import {body,db,fail,handler,json,mutation,one,session,upsert} from './_lib.mjs';
-export default handler(async(req,res)=>{const user=await session(req);mutation(req,user);if(req.method==='POST'){const d=await body(req),text=String(d.text||'').trim();if(!text||text.length>20000)fail('Anotação inválida.');if(d.id){const old=await one('notes',d.id);if(!old||old.userId!==user.id)fail('Anotação não encontrada.',404);}return json(res,200,await upsert('notes',d.id||crypto.randomUUID(),user.id,{text,lessonId:d.lessonId||null,documentId:d.documentId||null,quote:String(d.quote||'').slice(0,5000)}));}return json(res,405,{error:'Método não permitido.'});});

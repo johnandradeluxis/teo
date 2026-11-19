@@ -16,7 +16,7 @@ export default handler(async(req,res)=>{
   const visibleDocuments=documents.filter(d=>d.userId===user.id||(d.shared&&d.status==='validated'&&d.licenseConfirmed)).map(({filePath,...d})=>d);
   const diagnostic=milestones.find(x=>x.kind==='diagnostic');
   const plan=calculatePlan({preferences:preferences||{},disciplines,lessons:allLessons,mastery,diagnostic});
-  const dailyGuide=buildDailyStudyGuide({preferences:preferences||{},disciplines,lessons:allLessons,plan});
+  const dailyGuide=buildDailyStudyGuide({preferences:preferences||{},disciplines,lessons:allLessons,documents,plan});
   const eligibility=simulationEligibility({lessons:allLessons,progress,attempts,mastery,questions:allQuestions,rules:{...defaultRules,...rules}});
   const {secret,...safeAI}={...defaultAI,...ai};
   json(res,200,{user:{id:user.id,email:user.email,role:user.role,csrf:user.csrf},profile:profile||{name:'Estudante',onboarded:false},preferences:preferences||{minutes:30,days:[]},axes,disciplines,modules,lessons,questions,documents:visibleDocuments,progress,mastery,attempts,sessions,notes,favorites,milestones,simulations,plan,dailyGuide,eligibility,ai:{provider:safeAI.provider,model:safeAI.model,connected:providers.map(x=>x.kind)},admin:user.role==='admin'?{ai:safeAI,rules:{...defaultRules,...rules},questions:allQuestions,reviews,versions,usage,audit:audit.slice(-50)}:null});

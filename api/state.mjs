@@ -1,5 +1,5 @@
 import {handler,json,list,one,session,setting} from './_lib.mjs';
-import {buildDailyStudyGuideFromDocuments,calculatePlan,simulationEligibility} from '../server/domain.mjs';
+import {calculatePlan,simulationEligibility} from '../server/domain.mjs';
 
 const defaultRules={publicSignup:false,minimumScore:7,minimumActiveSeconds:60,requiredMastery:7,requireRealQuestions:false};
 const defaultAI={provider:'none',model:'',enabledFeatures:[],allowPersonalJourney:false};
@@ -16,7 +16,22 @@ export default handler(async(req,res)=>{
   const visibleDocuments=documents.filter(d=>d.userId===user.id||(d.shared&&d.status==='validated'&&d.licenseConfirmed)).map(({filePath,...d})=>d);
   const diagnostic=milestones.find(x=>x.kind==='diagnostic');
   const plan=calculatePlan({preferences:preferences||{},disciplines,lessons:allLessons,mastery,diagnostic});
-  const dailyGuide=buildDailyStudyGuideFromDocuments({preferences:preferences||{},disciplines,lessons:allLessons,documents,plan});
+  const total = Math.max(15,Number(preferences?.minutes)||30);
+  const short = Math.round(total/6);
+  const recall = Math.max(1,Math.round(total/10));
+  const sources = visibleDocuments.filter(d=>d.status==='validated' && d.licenseConfirmed);
+  const titleKey = d => String(d.title).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const readingBlock = (focus,pattern,minutes) => {
+    const doc = sources.find(d=>pattern.test(titleKey(d)));
+    const bookmark = milestones.find(m=>m.kind==='guided_reading' && doc && m.documentId===doc.id);
+    return {focus,minutes,title:doc?.title||'Aguardando fonte validada',documentId:doc?.id,pageDone:bookmark?.page};
+  };
+  const dailyGuide = {totalMinutes:total,notice:'Tempo previsto para a sessão de hoje.',blocks:[
+    readingBlock('Teologia sistemática',/teologia sistematica/,total-2*short-recall),
+    {focus:'Bíblia em contexto',title:'Retome uma passagem citada na leitura de hoje e examine os versículos ao redor.',minutes:short,library:true},
+    readingBlock('Eclesiologia batista',/pacto e comunhao|declaracao doutrinaria/,short),
+    {focus:'Fixação e revisão',minutes:recall,title:'Responda de memória e confira as revisões agendadas.',review:true}
+  ]};
   const eligibility=simulationEligibility({lessons:allLessons,progress,attempts,mastery,questions:allQuestions,rules:{...defaultRules,...rules}});
   const {secret,...safeAI}={...defaultAI,...ai};
   json(res,200,{user:{id:user.id,email:user.email,role:user.role,csrf:user.csrf},profile:profile||{name:'Estudante',onboarded:false},preferences:preferences||{minutes:30,days:[]},axes,disciplines,modules,lessons,questions,documents:visibleDocuments,progress,mastery,attempts,sessions,notes,favorites,milestones,simulations,plan,dailyGuide,eligibility,ai:{provider:safeAI.provider,model:safeAI.model,connected:providers.map(x=>x.kind)},admin:user.role==='admin'?{ai:safeAI,rules:{...defaultRules,...rules},questions:allQuestions,reviews,versions,usage,audit:audit.slice(-50)}:null});

@@ -1,10 +1,42 @@
+const bibleBooks = {
+  'gênesis':'gn','êxodo':'ex','salmos':'sl','salmo':'sl','isaías':'is','mateus':'mt','marcos':'mc','lucas':'lc',
+  'joão':'jo','atos':'at','romanos':'rm','efésios':'ef','hebreus':'hb','tiago':'tg','apocalipse':'ap',
+  'coríntios':'co','timóteo':'tm','pedro':'pe','gálatas':'gl','filipenses':'fp','colossenses':'cl'
+};
+function scriptureLinks(text) {
+  const aliases = [...Object.keys(bibleBooks),...Object.values(bibleBooks)].join('|');
+  const pattern = new RegExp('(?<![\\p{L}\\d])([123]?)\\s*('+aliases+')\\.?\\s+(\\d{1,3})\\s*[:,.]\\s*(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?(?!\\d)','giu');
+  const refs = new Map();
+  for (const match of text.matchAll(pattern)) {
+    const [,prefix,book,chapter,verse,end] = match;
+    const slug = prefix+(bibleBooks[book.toLowerCase()]||book.toLowerCase());
+    const url = 'https://www.bibliaonline.com.br/ara/'+slug+'/'+chapter+'/'+verse+(end?'-'+end:'');
+    refs.set(url,match[0].trim());
+  }
+  if (!refs.size) return '';
+  return '<section><h3>Passagens citadas nesta página</h3><p class="small muted">Abrir na Bíblia Online (ARA), em outra aba.</p>'+[...refs].map(([url,label])=>'<a class="button" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a>').join(' ')+'</section>';
+}
+function recallQueue(d) {
+  const records=d.milestones||[];
+  const due=records.filter(r=>r.kind==='guided_recall' && Date.parse(r.dueAt)<=Date.now()).sort((a,b)=>a.dueAt.localeCompare(b.dueAt));
+  const fresh=records.filter(r=>r.kind==='guided_reading' && !records.some(x=>x.kind==='guided_recall' && x.documentId===r.documentId && x.page===r.page));
+  return [...due,...fresh].filter(r=>d.documents.some(doc=>doc.id===r.documentId && doc.status==='validated'));
+}
+async function guidedRecall(id,page) {
+  const source=state.data.documents.find(d=>d.id===id);
+  const passage=await api('/api/actions?route=study/guided',{method:'POST',data:{mode:'reread',documentId:id,page}});
+  modal('Fixação da leitura','<p>'+esc(source.title)+' · p. '+esc(page)+'</p><label>Qual é a ideia central desta página e como você a explicaria a uma banca?<textarea id="guided-answer" maxlength="4000" required></textarea></label><details><summary>Conferir a leitura antes de se avaliar</summary><p style="white-space:pre-line">'+esc(passage.text)+'</p>'+scriptureLinks(passage.text)+'</details><p>Como foi sua resposta?</p><div class="row">'+['revisit','remembered'].map((result,i)=>button(i?'Consegui explicar':'Preciso revisar','record-recall','data-id="'+esc(id)+'" data-page="'+page+'" data-result="'+result+'"')).join('')+'</div>');
+}
 function dailyGuidePanel(d) {
   if (!d.dailyGuide) return '';
   const items = d.dailyGuide.blocks.map(block => {
     let action = '';
     if (block.documentId) action = button(block.pageDone?'Retomar leitura':'Começar leitura','guided-open','data-id="'+esc(block.documentId)+'"');
     if (block.library) action = button('Consultar a Bíblia','navigate','data-route="library"');
-    if (block.review) action = button('Abrir revisões','guided-reviews');
+    if (block.review) {
+      const next=recallQueue(d)[0];
+      action=next?button('Revisar página '+next.page+' · '+d.documents.find(doc=>doc.id===next.documentId).title,'page-recall','data-id="'+esc(next.documentId)+'" data-page="'+next.page+'"'):button('Abrir revisões','guided-reviews');
+    }
     return '<li><div class="row between"><strong>'+esc(block.focus)+'</strong>'+badge(block.minutes+' min')+'</div><p>'+esc(block.title)+'</p>'+(block.pageDone?'<p>Última página concluída: '+esc(block.pageDone)+'</p>':'')+action+'</li>';
   });
   return '<section class="panel"><h2>Seu roteiro de hoje</h2><p>'+esc(d.dailyGuide.totalMinutes)+' minutos de estudo</p><ol class="list">'+items.join('')+'</ol></section>';
@@ -14,7 +46,7 @@ async function openGuidedPage(id) {
   const source = state.data.documents.find(doc=>doc.id===id);
   const page = await api('/api/actions?route=study/guided',{method:'POST',data:{documentId:id}});
   if (page.finished) return modal(source.title,'<p>Você chegou ao final do texto disponível.</p>');
-  modal(source.title,'<p>Página '+esc(page.page)+'</p><p class="muted">'+esc(page.section||'')+'</p><article id="guided-text" style="white-space:pre-line">'+esc(page.text)+'</article><div class="row">'+('speechSynthesis' in window?button('Ouvir página','guided-listen')+button('Parar áudio','tts-stop'):'')+button('Concluir página e salvar posição','guided-save','data-id="'+esc(id)+'" data-page="'+esc(page.page)+'"',true)+'</div>');
+  modal(source.title,'<p>Página '+esc(page.page)+'</p><p class="muted">'+esc(page.section||'')+'</p><article id="guided-text" style="white-space:pre-line">'+esc(page.text)+'</article>'+scriptureLinks(page.text)+'<div class="row">'+('speechSynthesis' in window?button('Ouvir página','guided-listen')+button('Parar áudio','tts-stop'):'')+button('Concluir página e salvar posição','guided-save','data-id="'+esc(id)+'" data-page="'+esc(page.page)+'"',true)+'</div>');
 }
 
 const $=selector=>document.querySelector(selector);
@@ -118,7 +150,16 @@ document.addEventListener('click',async event=>{
       await api('/api/actions?route=study/guided',{method:'POST',data:{documentId:el.dataset.id,page:Number(el.dataset.page),complete:true}});
       window.speechSynthesis?.cancel();
       closeModal();
-      return await refresh('Página concluída. Sua posição foi salva.');
+      await refresh('Posição salva.');
+      return await guidedRecall(el.dataset.id,Number(el.dataset.page));
+    }
+    if(action==='page-recall') return await guidedRecall(el.dataset.id,Number(el.dataset.page));
+    if(action==='record-recall'){
+      const field=$('#guided-answer');
+      if(!field.value.trim()){field.focus();toast('Escreva sua resposta antes de salvar.',true);return;}
+      el.disabled=true;
+      const result=await api('/api/actions?route=study/guided',{method:'POST',data:{mode:'recall',documentId:el.dataset.id,page:Number(el.dataset.page),result:el.dataset.result,answer:field.value}});
+      closeModal();return await refresh('Resposta salva. Próxima revisão em '+date(result.dueAt)+'.');
     }
     if(action==='guided-reviews'){state.assessmentTab='reviews';state.route='assessments';render();window.scrollTo(0,0);return;}
     if(action==='close-modal' && $('#guided-text'))window.speechSynthesis?.cancel();

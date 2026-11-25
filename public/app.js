@@ -1,4 +1,23 @@
-function dailyGuidePanel(d){const g=d.dailyGuide;if(!g)return '';return '<section class="panel daily-guide"><div class="eyebrow">ESTUDO GUIADO DE HOJE</div><h2>Seu roteiro de estudo</h2><p class="muted">'+esc(g.notice||'Plano adaptativo para hoje.')+'</p><div class="guide-blocks">'+(g.blocks||[]).map(b=>'<div class="guide-block"><div class="row between"><strong>'+esc(b.focus)+'</strong><span class="badge">'+b.minutes+' min</span></div><p>'+esc(b.title)+'</p>'+(b.section?'<p class="small">Seção: '+esc(b.section)+'</p>':'')+(b.pageStart?'<span class="small muted">Páginas: '+b.pageStart+(b.pageEnd?'–'+b.pageEnd:'')+'</span>':'')+(b.objective?'<p class="small muted">Objetivo: '+esc(b.objective)+'</p>':'')+(b.references?.length?'<p class="small muted">Referências: '+esc(b.references.join(', '))+'</p>':'')+'</div>').join('')+'</div></section>';}const $=selector=>document.querySelector(selector);
+function dailyGuidePanel(d) {
+  if (!d.dailyGuide) return '';
+  const items = d.dailyGuide.blocks.map(block => {
+    let action = '';
+    if (block.documentId) action = button(block.pageDone?'Retomar leitura':'Começar leitura','guided-open','data-id="'+esc(block.documentId)+'"');
+    if (block.library) action = button('Consultar a Bíblia','navigate','data-route="library"');
+    if (block.review) action = button('Abrir revisões','guided-reviews');
+    return '<li><div class="row between"><strong>'+esc(block.focus)+'</strong>'+badge(block.minutes+' min')+'</div><p>'+esc(block.title)+'</p>'+(block.pageDone?'<p>Última página concluída: '+esc(block.pageDone)+'</p>':'')+action+'</li>';
+  });
+  return '<section class="panel"><h2>Seu roteiro de hoje</h2><p>'+esc(d.dailyGuide.totalMinutes)+' minutos de estudo</p><ol class="list">'+items.join('')+'</ol></section>';
+}
+
+async function openGuidedPage(id) {
+  const source = state.data.documents.find(doc=>doc.id===id);
+  const page = await api('/api/actions?route=study/guided',{method:'POST',data:{documentId:id}});
+  if (page.finished) return modal(source.title,'<p>Você chegou ao final do texto disponível.</p>');
+  modal(source.title,'<p>Página '+esc(page.page)+'</p><p class="muted">'+esc(page.section||'')+'</p><article id="guided-text" style="white-space:pre-line">'+esc(page.text)+'</article><div class="row">'+('speechSynthesis' in window?button('Ouvir página','guided-listen')+button('Parar áudio','tts-stop'):'')+button('Concluir página e salvar posição','guided-save','data-id="'+esc(id)+'" data-page="'+esc(page.page)+'"',true)+'</div>');
+}
+
+const $=selector=>document.querySelector(selector);
 const repair=value=>String(value??'');
 const esc=value=>repair(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={data:null,route:'home',tab:'lessons',axis:'sistematica',session:null,lessonId:null,run:null,simulation:null,assistant:false};
@@ -86,6 +105,23 @@ document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]');if(!el)return;const action=el.dataset.action;
   if(el.tagName==='BUTTON'&&el.closest('form'))el.type='button';
   try {
+    if(action==='guided-open') return await openGuidedPage(el.dataset.id);
+    if(action==='guided-listen'){
+      speechSynthesis.cancel();
+      const speech = new SpeechSynthesisUtterance($('#guided-text').innerText);
+      speech.lang='pt-BR';
+      speechSynthesis.speak(speech);
+      return;
+    }
+    if(action==='guided-save'){
+      el.disabled=true;
+      await api('/api/actions?route=study/guided',{method:'POST',data:{documentId:el.dataset.id,page:Number(el.dataset.page),complete:true}});
+      window.speechSynthesis?.cancel();
+      closeModal();
+      return await refresh('Página concluída. Sua posição foi salva.');
+    }
+    if(action==='guided-reviews'){state.assessmentTab='reviews';state.route='assessments';render();window.scrollTo(0,0);return;}
+    if(action==='close-modal' && $('#guided-text'))window.speechSynthesis?.cancel();
     if(action==='retry')return init();
     if(action==='auth-mode')return renderAuth(state.auth,el.dataset.mode);
     if(action==='theme'){document.body.classList.toggle('dark');localStorage.setItem('teo-theme',document.body.classList.contains('dark')?'dark':'light');if(state.data)render();return;}

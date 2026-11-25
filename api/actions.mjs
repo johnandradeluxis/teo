@@ -10,6 +10,25 @@ const guidedReading = handler(async (req, res) => {
   const key = hash(JSON.stringify(['guided',user.id,doc.id]));
   const saved = await one('journey_milestones', key);
   const last = Number(saved?.page || 0);
+  if (input.mode === 'recall') {
+    const page = Number(input.page);
+    const answer = String(input.answer || '').trim();
+    if (!Number.isSafeInteger(page) || page < 1 || page > last || !answer || answer.length > 4000 ||
+        !['revisit','remembered'].includes(input.result)) fail('Confira a página, a resposta e sua autoavaliação.');
+    const recallKey = hash(JSON.stringify(['guided_recall',user.id,doc.id,page]));
+    const prior = await one('journey_milestones',recallKey);
+    const days = input.result === 'revisit' ? 1 : prior?.interval >= 7 ? 14 : prior?.interval >= 3 ? 7 : 3;
+    const dueAt = new Date(Date.now()+days*86400000).toISOString();
+    await upsert('journey_milestones',recallKey,user.id,{kind:'guided_recall',documentId:doc.id,page,answer,result:input.result,interval:days,dueAt});
+    return json(res,200,{dueAt});
+  }
+  if (input.mode === 'reread') {
+    const page = Number(input.page);
+    if (!Number.isSafeInteger(page) || page < 1 || page > last) fail('Página indisponível.');
+    const {rows} = await db("SELECT payload FROM document_chunks WHERE payload->>'documentId'=$1 AND payload->>'page'=$2 ORDER BY created_at,id",[doc.id,String(page)]);
+    if (!rows.length) fail('Extração indisponível.',404);
+    return json(res,200,{page,text:rows.map(r=>r.payload.text).join('\n\n'),section:rows[0].payload.section});
+  }
   const {rows} = await db(`SELECT (payload->>'page')::int AS page, payload->>'section' AS section, payload->>'text' AS text
     FROM document_chunks WHERE payload->>'documentId'=$1 AND (payload->>'page')::int = (
       SELECT min((payload->>'page')::int) FROM document_chunks

@@ -17,6 +17,7 @@ const guidedReading = handler(async (req, res) => {
         !['revisit','remembered'].includes(input.result)) fail('Confira a página, a resposta e sua autoavaliação.');
     const recallKey = hash(JSON.stringify(['guided_recall',user.id,doc.id,page]));
     const prior = await one('journey_milestones',recallKey);
+    if (prior && Date.parse(prior.dueAt)>Date.now()) return json(res,200,{dueAt:prior.dueAt});
     const days = input.result === 'revisit' ? 1 : prior?.interval >= 7 ? 14 : prior?.interval >= 3 ? 7 : 3;
     const dueAt = new Date(Date.now()+days*86400000).toISOString();
     await upsert('journey_milestones',recallKey,user.id,{kind:'guided_recall',documentId:doc.id,page,answer,result:input.result,interval:days,dueAt});
@@ -38,7 +39,21 @@ const guidedReading = handler(async (req, res) => {
   const page = rows[0].page;
   if (input.complete) {
     if (Number(input.page)!==page) fail('Sua posição já mudou. Reabra a leitura.',409);
-    await upsert('journey_milestones',key,user.id,{kind:'guided_reading',documentId:doc.id,page});
+    // Preserve both sides of the bookmark transition, including legacy bookmarks.
+    const pages = [...new Set([last,page])].filter(n=>n>0);
+    const stamp = new Date().toISOString();
+    const entries = pages.map(n=>({id:hash(JSON.stringify(['guided_page',user.id,doc.id,n])),payload:{kind:'guided_page',documentId:doc.id,page:n}}));
+    const bookmark = {kind:'guided_reading',documentId:doc.id,page};
+    await db(`WITH saved AS (
+      INSERT INTO journey_milestones(id,user_id,payload,created_at,updated_at)
+      VALUES ($1,$2,$3::jsonb,$4,$4)
+      ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at
+      WHERE (journey_milestones.payload->>'page')::int < (excluded.payload->>'page')::int
+      RETURNING id
+    )
+    INSERT INTO journey_milestones(id,user_id,payload,created_at,updated_at)
+    SELECT entry->>'id',$2,entry->'payload',$4,$4 FROM saved CROSS JOIN jsonb_array_elements($5::jsonb) AS entry
+    ON CONFLICT(id) DO NOTHING`,[key,user.id,JSON.stringify(bookmark),stamp,JSON.stringify(entries)]);
     return json(res,200,{saved:true,page});
   }
   return json(res,200,{page,section:rows[0].section,text:rows.map(row=>row.text).filter(Boolean).join('\n\n')});

@@ -69,7 +69,27 @@ import journey from '../server/actions/journey.mjs';
 import notes from '../server/actions/notes.mjs';
 import favorites from '../server/actions/favorites.mjs';
 
+const assistant = handler(async (req,res)=>{
+  if (req.method !== 'POST') return json(res,405,{error:'Use POST.'});
+  const user = await session(req);
+  mutation(req,user);
+  const input = await body(req);
+  const question = String(input.question || '').trim();
+  if (!question || question.length>3000) fail('Escreva uma pergunta de até 3.000 caracteres.');
+  const stop = new Set('como responder quem qual quais sobre explique explicar diga uma que para dos das por são nos com'.split(' '));
+  const terms = [...new Set(question.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu)||[])].filter(t=>!stop.has(t)).slice(0,12);
+  const {rows} = terms.length ? await db(`WITH query AS (SELECT plainto_tsquery('portuguese',$2) AS q)
+    SELECT d.payload->>'title' AS document, c.payload->>'documentId' AS "documentId",
+           c.payload->>'page' AS page,c.payload->>'section' AS section,left(c.payload->>'text',1200) AS text
+    FROM document_chunks c JOIN documents d ON d.id=c.payload->>'documentId' CROSS JOIN query
+    WHERE d.payload->>'status'='validated' AND d.payload->>'licenseConfirmed'='true'
+      AND (d.user_id=$1 OR d.payload->>'shared'='true')
+      AND to_tsvector('portuguese',c.payload->>'text') @@ query.q
+    ORDER BY ts_rank_cd(to_tsvector('portuguese',c.payload->>'text'),query.q) DESC,c.id LIMIT 3`,[user.id,terms.join(' ')]) : {rows:[]};
+  json(res,200,{answer:rows.length?'Consulta à biblioteca. Estes trechos contêm os termos da sua pergunta. Confira cada passagem em seu contexto.':'Não encontrei respaldo suficiente nos documentos validados. Tente uma expressão mais específica.',sources:rows});
+});
 const routes={
+  assistant,
   'study/guided':guidedReading,
   'study/start':studyStart,'study/heartbeat':studyHeartbeat,'study/complete':studyComplete,
   'questions/answer':questionAnswer,'diagnostic/start':diagnosticStart,'diagnostic/submit':diagnosticSubmit,

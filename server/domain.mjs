@@ -47,11 +47,11 @@ export function simulationEligibility({lessons,progress,attempts,mastery,questio
   const coveredAxes=new Set(questions.filter(q=>q.status==='published'&&(!rules.requireRealQuestions||q.origin==='real')).map(q=>q.axisId));
   const low=required.filter(l=>!mastery.some(m=>m.disciplineId===l.disciplineId&&m.score>=rules.requiredMastery));
   const reasons=[];
-  if(!required.length) reasons.push('Publique o curr�culo obrigat�rio.');
-  if(missing.length) reasons.push(`${missing.length} aula(s) obrigat�ria(s) pendente(s).`);
-  if(missingQuestions.length) reasons.push(`${missingQuestions.length} avalia��o(�es) essencial(is) pendente(s).`);
-  if(low.length) reasons.push('Demonstre dom�nio nas disciplinas obrigat�rias.');
-  if(axisIds.some(x=>!coveredAxes.has(x))) reasons.push('O banco de quest�es precisa cobrir os quatro eixos com a origem exigida.');
+  if(!required.length) reasons.push('A simulação será liberada após a publicação do currículo obrigatório e a conclusão das atividades.');
+  if(missing.length) reasons.push(`${missing.length} sessão(ões) de estudo pendente(s).`);
+  if(missingQuestions.length) reasons.push(`${missingQuestions.length} atividade(s) de avaliação pendente(s).`);
+  if(low.length) reasons.push('Demonstre domínio nas disciplinas obrigatórias.');
+  if(axisIds.some(x=>!coveredAxes.has(x))) reasons.push('A simulação aguarda perguntas publicadas nos quatro eixos.');
   return {eligible:!reasons.length,reasons};
 }
 export function selectBalanced(questions,count,history=[]) {

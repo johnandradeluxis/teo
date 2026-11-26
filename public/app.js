@@ -17,10 +17,17 @@ function scriptureLinks(text) {
   return '<section><h3>Passagens citadas nesta página</h3><p class="small muted">Abrir na Bíblia Online (ARA), em outra aba.</p>'+[...refs].map(([url,label])=>'<a class="button" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a>').join(' ')+'</section>';
 }
 function recallQueue(d) {
-  const records=d.milestones||[];
-  const due=records.filter(r=>r.kind==='guided_recall' && Date.parse(r.dueAt)<=Date.now()).sort((a,b)=>a.dueAt.localeCompare(b.dueAt));
-  const fresh=records.filter(r=>r.kind==='guided_reading' && !records.some(x=>x.kind==='guided_recall' && x.documentId===r.documentId && x.page===r.page));
-  return [...due,...fresh].filter(r=>d.documents.some(doc=>doc.id===r.documentId && doc.status==='validated'));
+  const records = d.milestones || [];
+  const visible = new Set(d.documents.filter(doc=>doc.status==='validated').map(doc=>doc.id));
+  const key = row=>JSON.stringify([row.documentId,row.page]);
+  const recalls = new Map(records.filter(row=>row.kind==='guided_recall').map(row=>[key(row),row]));
+  const due = [...recalls.values()].filter(row=>Date.parse(row.dueAt)<=Date.now())
+    .sort((a,b)=>Date.parse(a.dueAt)-Date.parse(b.dueAt));
+  const fresh = new Map();
+  for (const row of records) {
+    if ((row.kind==='guided_page' || row.kind==='guided_reading') && !recalls.has(key(row))) fresh.set(key(row),row);
+  }
+  return [...due,...[...fresh.values()].sort((a,b)=>a.page-b.page)].filter(row=>visible.has(row.documentId));
 }
 async function guidedRecall(id,page) {
   const source=state.data.documents.find(d=>d.id===id);

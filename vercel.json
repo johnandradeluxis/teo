@@ -1,21 +1,57 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["gru1"],
+  "regions": [
+    "gru1"
+  ],
   "functions": {
     "api/**/*.mjs": {
       "maxDuration": 60
     }
   },
   "rewrites": [
-    {"source":"/api/study/start","destination":"/api/actions?route=study/start"},
-    {"source":"/api/study/heartbeat","destination":"/api/actions?route=study/heartbeat"},
-    {"source":"/api/study/complete","destination":"/api/actions?route=study/complete"},
-    {"source":"/api/questions/answer","destination":"/api/actions?route=questions/answer"},
-    {"source":"/api/diagnostic/start","destination":"/api/actions?route=diagnostic/start"},
-    {"source":"/api/diagnostic/submit","destination":"/api/actions?route=diagnostic/submit"},
-    {"source":"/api/library/search","destination":"/api/actions?route=library/search"},
-    {"source":"/api/journey","destination":"/api/actions?route=journey"},
-    {"source":"/api/notes","destination":"/api/actions?route=notes"},
-    {"source":"/api/favorites","destination":"/api/actions?route=favorites"}
+    {
+      "source": "/api/assistant",
+      "destination": "/api/actions?route=assistant"
+    },
+    {
+      "source": "/api/study/start",
+      "destination": "/api/actions?route=study/start"
+    },
+    {
+      "source": "/api/study/heartbeat",
+      "destination": "/api/actions?route=study/heartbeat"
+    },
+    {
+      "source": "/api/study/complete",
+      "destination": "/api/actions?route=study/complete"
+    },
+    {
+      "source": "/api/questions/answer",
+      "destination": "/api/actions?route=questions/answer"
+    },
+    {
+      "source": "/api/diagnostic/start",
+      "destination": "/api/actions?route=diagnostic/start"
+    },
+    {
+      "source": "/api/diagnostic/submit",
+      "destination": "/api/actions?route=diagnostic/submit"
+    },
+    {
+      "source": "/api/library/search",
+      "destination": "/api/actions?route=library/search"
+    },
+    {
+      "source": "/api/journey",
+      "destination": "/api/actions?route=journey"
+    },
+    {
+      "source": "/api/notes",
+      "destination": "/api/actions?route=notes"
+    },
+    {
+      "source": "/api/favorites",
+      "destination": "/api/actions?route=favorites"
+    }
   ]
 }
